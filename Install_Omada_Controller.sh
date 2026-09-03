@@ -170,7 +170,7 @@ show_header() {
 
  ██████╗████████╗██╗ ██████╗       ██████╗ ████████╗ ██████╗
 ██╔════╝╚══██╔══╝██║██╔════╝      ██╔═══██╗╚══██╔══╝██╔════╝
-██║        ██║   ██║██║     █████╗██║   ██║   ██║   ██║
+██║        ██║   ██║██║     █████╗██║ ██║     ██║   ██║
 ██║        ██║   ██║██║     ╚════╝██║   ██║   ██║   ██║
 ╚██████╗   ██║   ██║╚██████╗      ╚██████╔╝   ██║   ╚██████╗
  ╚═════╝   ╚═╝   ╚═╝ ╚═════╝       ╚═════╝    ╚═╝    ╚═════╝
@@ -296,8 +296,46 @@ O instalador atualmente trabalha com amd64."
 
 check_internet() {
 
-    log "Verificando conectividade com a Internet..."
+    log "Verificando conectividade de rede..."
 
+    # Verifica rota padrão
+    if ! ip route | grep -q '^default'; then
+        die "Nenhuma rota padrão foi encontrada."
+    fi
+
+    success "Rota padrão encontrada."
+
+    # Verifica conectividade IP
+    if ping -c 2 -W 3 1.1.1.1 >/dev/null 2>&1; then
+        success "Conectividade IP OK."
+    else
+        die "Não foi possível alcançar a Internet por IP."
+    fi
+
+    # Verifica DNS
+    if getent hosts deb.debian.org >/dev/null 2>&1; then
+        success "Resolução DNS OK."
+    else
+        die "Falha na resolução DNS."
+    fi
+
+    # Verifica HTTPS
+    if curl \
+        -fsSL \
+        --connect-timeout 10 \
+        --max-time 20 \
+        https://deb.debian.org/ \
+        >/dev/null 2>&1; then
+
+        success "Conectividade HTTPS OK."
+
+    else
+
+        warning "HTTPS para deb.debian.org falhou."
+
+    fi
+
+    # Teste separado da TP-Link
     if curl \
         -fsSL \
         --connect-timeout 10 \
@@ -305,14 +343,14 @@ check_internet() {
         https://www.tp-link.com/ \
         >/dev/null 2>&1; then
 
-        success "Conectividade com a Internet OK."
+        success "Acesso à TP-Link OK."
 
     else
 
-        die "Não foi possível acessar a Internet."
+        warning "Não foi possível acessar diretamente a TP-Link."
+        warning "Isso não significa necessariamente que o servidor esteja sem Internet."
 
     fi
-
 }
 
 ###############################################################################
